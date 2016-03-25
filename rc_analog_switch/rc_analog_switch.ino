@@ -31,12 +31,13 @@ attiny85 pinout: http://highlowtech.org/wp-content/uploads/2011/10/ATtiny45-85.p
 CD4051 mux: http://playground.arduino.cc/Learning/4051
 */
 const int RC_IN_PIN = 3;
-const int RC_THR = 1500;
+const int RC_THR = 1500;  // typical signal range is between 1000 and 2000
 const int CD4051_IN1 = 2;
 const int CD4051_IN2 = 1;
 const int CD4051_IN3 = 0;
 
-int ch1;
+int rc_val;
+int current_ch;
 
 void setup() {
   pinMode(CD4051_IN1, OUTPUT);
@@ -45,17 +46,20 @@ void setup() {
   pinMode(RC_IN_PIN, INPUT);
 }
 
-void loop() {
-  ch1 = pulseIn(RC_IN_PIN, HIGH, 25000);
+int switch_to_channel(int ch) {
   // (S0 = 1; S1 = 2; S2 = 4)
-  if (ch1 > RC_THR) {             // video 2
-    digitalWrite(CD4051_IN1, bitRead(1,0));
-    digitalWrite(CD4051_IN2, bitRead(1,1));
-    digitalWrite(CD4051_IN3, bitRead(1,2));
-  } else {                        // video 1
-    digitalWrite(CD4051_IN1, bitRead(0,0));
-    digitalWrite(CD4051_IN2, bitRead(0,1));
-    digitalWrite(CD4051_IN3, bitRead(0,2));
+  digitalWrite(CD4051_IN1, bitRead(ch, 0));
+  digitalWrite(CD4051_IN2, bitRead(ch, 1));
+  digitalWrite(CD4051_IN3, bitRead(ch, 2));
+  return ch;
+}
+
+void loop() {
+  rc_val = pulseIn(RC_IN_PIN, HIGH, 25000);
+  if (rc_val > RC_THR && current_ch != 1) {     // video 2
+    current_ch = switch_to_channel(1);
+  } else if (rc_val <= RC_THR && current_ch != 0) {       // video 1
+    current_ch = switch_to_channel(0);
   }
-  delay(100);
+  delay(10);
 }
